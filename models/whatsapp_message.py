@@ -72,11 +72,16 @@ class WhatsAppMessage(models.Model):
     def _compute_partner_id(self):
         """Try to match phone number to a partner."""
         for record in self:
+            if not record.phone_number:
+                record.partner_id = False
+                continue
+            phone = record.phone_number
+            phone_short = phone[-10:] if len(phone) > 10 else phone
             partner = self.env['res.partner'].search([
                 '|', '|',
-                ('phone', 'ilike', record.phone_number),
-                ('mobile', 'ilike', record.phone_number),
-                ('phone', 'ilike', record.phone_number[-10:] if len(record.phone_number) > 10 else record.phone_number),
+                ('phone', 'ilike', phone),
+                ('mobile', 'ilike', phone),
+                ('phone', 'ilike', phone_short),
             ], limit=1)
             record.partner_id = partner
 
