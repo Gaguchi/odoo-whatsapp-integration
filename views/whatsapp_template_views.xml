@@ -57,7 +57,7 @@
         <field name="name">whatsapp.template.tree</field>
         <field name="model">whatsapp.template</field>
         <field name="arch" type="xml">
-            <tree string="WhatsApp Templates">
+            <list string="WhatsApp Templates">
                 <field name="name"/>
                 <field name="template_name"/>
                 <field name="category" widget="badge"/>
@@ -67,7 +67,7 @@
                        decoration-warning="status == 'pending'"
                        decoration-danger="status == 'rejected'"/>
                 <field name="account_id" optional="show"/>
-            </tree>
+            </list>
         </field>
     </record>
 

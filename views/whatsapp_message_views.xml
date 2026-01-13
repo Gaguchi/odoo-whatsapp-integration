@@ -54,7 +54,7 @@
         <field name="name">whatsapp.message.tree</field>
         <field name="model">whatsapp.message</field>
         <field name="arch" type="xml">
-            <tree string="WhatsApp Messages" default_order="timestamp desc">
+            <list string="WhatsApp Messages" default_order="timestamp desc">
                 <field name="timestamp"/>
                 <field name="direction" widget="badge"
                        decoration-info="direction == 'incoming'"
@@ -69,7 +69,7 @@
                        decoration-danger="status == 'failed'"
                        decoration-muted="status == 'pending'"/>
                 <field name="account_id" optional="hide"/>
-            </tree>
+            </list>
         </field>
     </record>
 

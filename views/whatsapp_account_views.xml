@@ -55,14 +55,14 @@
         <field name="name">whatsapp.account.tree</field>
         <field name="model">whatsapp.account</field>
         <field name="arch" type="xml">
-            <tree string="WhatsApp Accounts">
+            <list string="WhatsApp Accounts">
                 <field name="name"/>
                 <field name="phone_number_id"/>
                 <field name="state" widget="badge" 
                        decoration-success="state == 'connected'"
                        decoration-danger="state == 'disconnected'"/>
                 <field name="company_id" groups="base.group_multi_company"/>
-            </tree>
+            </list>
         </field>
     </record>
 
