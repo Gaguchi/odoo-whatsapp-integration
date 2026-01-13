@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main WhatsApp Menu -->
+    <menuitem id="whatsapp_menu_root"
+              name="WhatsApp"
+              web_icon="whatsapp_integration,static/description/icon.png"
+              sequence="50"/>
+
+    <!-- Messages Submenu -->
+    <menuitem id="whatsapp_menu_messages"
+              name="Messages"
+              parent="whatsapp_menu_root"
+              action="whatsapp_message_action"
+              sequence="10"/>
+
+    <!-- Configuration Parent Menu -->
+    <menuitem id="whatsapp_menu_configuration"
+              name="Configuration"
+              parent="whatsapp_menu_root"
+              sequence="90"/>
+
+    <!-- Accounts Submenu -->
+    <menuitem id="whatsapp_menu_accounts"
+              name="Accounts"
+              parent="whatsapp_menu_configuration"
+              action="whatsapp_account_action"
+              sequence="10"/>
+
+    <!-- Templates Submenu -->
+    <menuitem id="whatsapp_menu_templates"
+              name="Message Templates"
+              parent="whatsapp_menu_configuration"
+              action="whatsapp_template_action"
+              sequence="20"/>
+</odoo>

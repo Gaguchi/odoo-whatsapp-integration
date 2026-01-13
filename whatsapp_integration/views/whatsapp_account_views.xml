@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- WhatsApp Account Form View -->
+    <record id="whatsapp_account_view_form" model="ir.ui.view">
+        <field name="name">whatsapp.account.form</field>
+        <field name="model">whatsapp.account</field>
+        <field name="arch" type="xml">
+            <form string="WhatsApp Account">
+                <header>
+                    <button name="action_test_connection" 
+                            string="Test Connection" 
+                            type="object" 
+                            class="btn-primary"
+                            icon="fa-plug"/>
+                    <button name="action_sync_templates" 
+                            string="Sync Templates" 
+                            type="object"
+                            icon="fa-refresh"/>
+                    <field name="state" widget="statusbar" 
+                           statusbar_visible="disconnected,connected"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(whatsapp_message_action)d"
+                                type="action"
+                                class="oe_stat_button"
+                                icon="fa-comments"
+                                context="{'search_default_account_id': active_id}">
+                            <field name="message_ids" widget="statinfo" string="Messages"/>
+                        </button>
+                        <button name="%(whatsapp_template_action)d"
+                                type="action"
+                                class="oe_stat_button"
+                                icon="fa-file-text-o"
+                                context="{'search_default_account_id': active_id}">
+                            <field name="template_ids" widget="statinfo" string="Templates"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Account Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="API Configuration">
+                            <field name="phone_number_id" password="True"/>
+                            <field name="access_token" password="True"/>
+                            <field name="waba_id"/>
+                            <field name="app_id"/>
+                            <field name="app_secret" password="True"/>
+                        </group>
+                        <group string="Webhook Configuration">
+                            <field name="verify_token"/>
+                            <div class="alert alert-info" role="alert">
+                                <strong>Webhook URL:</strong><br/>
+                                <code>https://YOUR_DOMAIN/whatsapp/webhook</code>
+                            </div>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- WhatsApp Account Tree View -->
+    <record id="whatsapp_account_view_tree" model="ir.ui.view">
+        <field name="name">whatsapp.account.tree</field>
+        <field name="model">whatsapp.account</field>
+        <field name="arch" type="xml">
+            <tree string="WhatsApp Accounts">
+                <field name="name"/>
+                <field name="phone_number_id"/>
+                <field name="state" widget="badge" 
+                       decoration-success="state == 'connected'"
+                       decoration-danger="state == 'disconnected'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- WhatsApp Account Action -->
+    <record id="whatsapp_account_action" model="ir.actions.act_window">
+        <field name="name">WhatsApp Accounts</field>
+        <field name="res_model">whatsapp.account</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add your first WhatsApp Business Account
+            </p>
+            <p>
+                Connect your WhatsApp Business API to send and receive messages.
+            </p>
+        </field>
+    </record>
+</odoo>

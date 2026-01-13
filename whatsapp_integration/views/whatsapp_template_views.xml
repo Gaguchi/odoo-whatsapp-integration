@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- WhatsApp Template Form View -->
+    <record id="whatsapp_template_view_form" model="ir.ui.view">
+        <field name="name">whatsapp.template.form</field>
+        <field name="model">whatsapp.template</field>
+        <field name="arch" type="xml">
+            <form string="WhatsApp Template">
+                <header>
+                    <button name="action_send_test" 
+                            string="Send Test" 
+                            type="object" 
+                            class="btn-secondary"
+                            icon="fa-paper-plane"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Template Display Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="template_name"/>
+                            <field name="account_id"/>
+                            <field name="language"/>
+                        </group>
+                        <group>
+                            <field name="category"/>
+                            <field name="status" widget="badge"
+                                   decoration-success="status == 'approved'"
+                                   decoration-warning="status == 'pending'"
+                                   decoration-danger="status == 'rejected'"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Template Content">
+                        <group>
+                            <field name="header_type"/>
+                            <field name="header_text" invisible="header_type != 'text'"/>
+                        </group>
+                        <group>
+                            <field name="footer_text"/>
+                            <field name="has_buttons"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="content" placeholder="Template body text..." nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- WhatsApp Template Tree View -->
+    <record id="whatsapp_template_view_tree" model="ir.ui.view">
+        <field name="name">whatsapp.template.tree</field>
+        <field name="model">whatsapp.template</field>
+        <field name="arch" type="xml">
+            <tree string="WhatsApp Templates">
+                <field name="name"/>
+                <field name="template_name"/>
+                <field name="category" widget="badge"/>
+                <field name="language"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'approved'"
+                       decoration-warning="status == 'pending'"
+                       decoration-danger="status == 'rejected'"/>
+                <field name="account_id" optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- WhatsApp Template Search View -->
+    <record id="whatsapp_template_view_search" model="ir.ui.view">
+        <field name="name">whatsapp.template.search</field>
+        <field name="model">whatsapp.template</field>
+        <field name="arch" type="xml">
+            <search string="Search Templates">
+                <field name="name"/>
+                <field name="template_name"/>
+                <separator/>
+                <filter name="approved" string="Approved" 
+                        domain="[('status', '=', 'approved')]"/>
+                <filter name="pending" string="Pending" 
+                        domain="[('status', '=', 'pending')]"/>
+                <separator/>
+                <filter name="marketing" string="Marketing" 
+                        domain="[('category', '=', 'marketing')]"/>
+                <filter name="utility" string="Utility" 
+                        domain="[('category', '=', 'utility')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_category" string="Category" 
+                            context="{'group_by': 'category'}"/>
+                    <filter name="group_by_status" string="Status" 
+                            context="{'group_by': 'status'}"/>
+                    <filter name="group_by_account" string="Account" 
+                            context="{'group_by': 'account_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- WhatsApp Template Action -->
+    <record id="whatsapp_template_action" model="ir.actions.act_window">
+        <field name="name">Message Templates</field>
+        <field name="res_model">whatsapp.template</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_approved': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No message templates yet
+            </p>
+            <p>
+                Click "Sync Templates" on an account to import templates from WhatsApp.
+            </p>
+        </field>
+    </record>
+</odoo>

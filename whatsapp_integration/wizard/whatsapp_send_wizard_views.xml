@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Send Message Wizard Form -->
+    <record id="whatsapp_message_send_wizard_form" model="ir.ui.view">
+        <field name="name">whatsapp.message.send.wizard.form</field>
+        <field name="model">whatsapp.message.send.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send WhatsApp Message">
+                <group>
+                    <field name="account_id"/>
+                    <field name="phone_number" placeholder="e.g., 1234567890"/>
+                    <field name="message_type" widget="radio"/>
+                </group>
+                <group invisible="message_type != 'text'">
+                    <field name="message_text" placeholder="Type your message..." nolabel="1"/>
+                </group>
+                <group invisible="message_type != 'template'">
+                    <field name="template_id"/>
+                </group>
+                <footer>
+                    <button name="action_send" string="Send" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Send Message Wizard Action -->
+    <record id="whatsapp_message_send_wizard_action" model="ir.actions.act_window">
+        <field name="name">Send WhatsApp Message</field>
+        <field name="res_model">whatsapp.message.send.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
