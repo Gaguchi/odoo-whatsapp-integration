@@ -47,7 +47,7 @@ class WhatsAppWebhook(http.Controller):
         
         return 'Bad Request', 400
 
-    @http.route('/whatsapp/webhook', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/whatsapp/webhook', type='http', auth='public', methods=['POST'], csrf=False)
     def receive_webhook(self, **kwargs):
         """
         Handle incoming webhook notifications from WhatsApp.
@@ -57,7 +57,7 @@ class WhatsAppWebhook(http.Controller):
         - Message status updates (sent, delivered, read)
         """
         try:
-            data = request.jsonrequest
+            data = request.get_json_data()
             _logger.debug(f"WhatsApp webhook received: {json.dumps(data, indent=2)}")
             
             # Normalize data structure to handle both standard and flattened payloads
@@ -108,11 +108,11 @@ class WhatsAppWebhook(http.Controller):
                             account, status
                         )
             
-            return {'status': 'ok'}
+            return 'OK'
             
         except Exception as e:
             _logger.error(f"WhatsApp webhook error: {str(e)}", exc_info=True)
-            return {'status': 'error', 'message': str(e)}
+            return 'Error', 500
 
     @http.route('/whatsapp/webhook/status', type='json', auth='user', methods=['POST'])
     def webhook_status(self, **kwargs):
