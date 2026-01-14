@@ -60,9 +60,17 @@ class WhatsAppWebhook(http.Controller):
             data = request.jsonrequest
             _logger.debug(f"WhatsApp webhook received: {json.dumps(data, indent=2)}")
             
+            # Normalize data structure to handle both standard and flattened payloads
+            entries = data.get('entry', [])
+            
+            # If no 'entry' key, check if it looks like a flattened 'changes' object
+            if not entries and 'field' in data and 'value' in data:
+                 entries = [{'changes': [data]}]
+            
             # Process each entry
-            for entry in data.get('entry', []):
-                for change in entry.get('changes', []):
+            for entry in entries:
+                changes = entry.get('changes', [])
+                for change in changes:
                     if change.get('field') != 'messages':
                         continue
                     
