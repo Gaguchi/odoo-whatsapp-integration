@@ -54,7 +54,7 @@ class WhatsAppMessageSendWizard(models.TransientModel):
                 self.template_id.language
             )
         
-        if result:
+        if result and result.status == 'sent':
             return {
                 'type': 'ir.actions.client',
                 'tag': 'display_notification',
@@ -66,4 +66,5 @@ class WhatsAppMessageSendWizard(models.TransientModel):
                 }
             }
         else:
-            raise UserError("Failed to send message. Check the logs for details.")
+            error_msg = result.error_message if result else "Unknown error"
+            raise UserError(f"Failed to send message: {error_msg}")

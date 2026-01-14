@@ -79,13 +79,14 @@ class WhatsAppAccount(models.Model):
             self.state = 'disconnected'
             raise UserError(f"Connection failed: {str(e)}")
 
-    def send_text_message(self, to, message_text):
+    def send_text_message(self, to, message_text, conversation_id=None):
         """
         Send a text message via WhatsApp.
         
         :param to: Recipient phone number (with country code, no +)
         :param message_text: Text content to send
-        :return: WhatsApp message ID or False
+        :param conversation_id: Optional conversation ID to link
+        :return: whatsapp.message record
         """
         self.ensure_one()
         url = f"{WHATSAPP_API_URL}/{self.phone_number_id}/messages"
@@ -110,8 +111,9 @@ class WhatsAppAccount(models.Model):
             message_id = data.get('messages', [{}])[0].get('id')
             
             # Log the outgoing message
-            self.env['whatsapp.message'].create({
+            message = self.env['whatsapp.message'].create({
                 'account_id': self.id,
+                'conversation_id': conversation_id,
                 'direction': 'outgoing',
                 'phone_number': to,
                 'message_type': 'text',
@@ -120,23 +122,25 @@ class WhatsAppAccount(models.Model):
                 'status': 'sent',
             })
             
-            return message_id
+            return message
             
         except requests.exceptions.RequestException as e:
             _logger.error(f"WhatsApp send failed: {str(e)}")
             
             # Log failed message
-            self.env['whatsapp.message'].create({
+            message = self.env['whatsapp.message'].create({
                 'account_id': self.id,
+                'conversation_id': conversation_id,
                 'direction': 'outgoing',
                 'phone_number': to,
                 'message_type': 'text',
                 'content': message_text,
                 'status': 'failed',
+                'error_message': str(e),
             })
-            return False
+            return message
 
-    def send_template_message(self, to, template_name, language_code='en', components=None):
+    def send_template_message(self, to, template_name, language_code='en', components=None, conversation_id=None):
         """
         Send a template message via WhatsApp.
         
@@ -144,7 +148,8 @@ class WhatsAppAccount(models.Model):
         :param template_name: WhatsApp approved template name
         :param language_code: Template language code
         :param components: Template components (header, body, button params)
-        :return: WhatsApp message ID or False
+        :param conversation_id: Optional conversation ID to link
+        :return: whatsapp.message record
         """
         self.ensure_one()
         url = f"{WHATSAPP_API_URL}/{self.phone_number_id}/messages"
@@ -173,8 +178,9 @@ class WhatsAppAccount(models.Model):
             
             message_id = data.get('messages', [{}])[0].get('id')
             
-            self.env['whatsapp.message'].create({
+            message = self.env['whatsapp.message'].create({
                 'account_id': self.id,
+                'conversation_id': conversation_id,
                 'direction': 'outgoing',
                 'phone_number': to,
                 'message_type': 'template',
@@ -183,11 +189,22 @@ class WhatsAppAccount(models.Model):
                 'status': 'sent',
             })
             
-            return message_id
+            return message
             
         except requests.exceptions.RequestException as e:
             _logger.error(f"WhatsApp template send failed: {str(e)}")
-            return False
+            
+            message = self.env['whatsapp.message'].create({
+                'account_id': self.id,
+                'conversation_id': conversation_id,
+                'direction': 'outgoing',
+                'phone_number': to,
+                'message_type': 'template',
+                'content': f"Template: {template_name}",
+                'status': 'failed',
+                'error_message': str(e),
+            })
+            return message
 
     def action_sync_templates(self):
         """Sync message templates from WhatsApp Business API."""

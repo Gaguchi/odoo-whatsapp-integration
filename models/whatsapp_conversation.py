@@ -140,30 +140,13 @@ class WhatsAppConversation(models.Model):
         """Send a message in this conversation."""
         self.ensure_one()
         
-        # Create the message record
-        message = self.env['whatsapp.message'].create({
-            'account_id': self.account_id.id,
-            'conversation_id': self.id,
-            'direction': 'outgoing',
-            'phone_number': self.phone_number,
-            'message_type': message_type,
-            'content': content,
-            'status': 'pending',
-        })
-        
-        # Send via WhatsApp API
-        try:
-            result = self.account_id.send_text_message(self.phone_number, content)
-            if result.get('messages'):
-                message.whatsapp_message_id = result['messages'][0].get('id')
-                message.status = 'sent'
-            else:
-                message.status = 'failed'
-                message.error_message = result.get('error', {}).get('message', 'Unknown error')
-        except Exception as e:
-            message.status = 'failed'
-            message.error_message = str(e)
-            _logger.exception("Failed to send WhatsApp message")
+        # Send via WhatsApp API (which creates the record)
+        # We pass conversation_id so it's linked immediately
+        message = self.account_id.send_text_message(
+            self.phone_number, 
+            content, 
+            conversation_id=self.id
+        )
         
         return {
             'id': message.id,
