@@ -202,8 +202,9 @@ class WhatsAppMessage(models.Model):
                     errors = status_data.get('errors', [])
                     if errors:
                         error_obj = errors[0]
-                        # Try 'message', then 'title', then dump the whole object
-                        error_msg = error_obj.get('message') or error_obj.get('title') or str(error_obj)
+                        # Try 'error_data.details', then 'message', then 'title', then dump
+                        error_details = error_obj.get('error_data', {}).get('details')
+                        error_msg = error_details or error_obj.get('message') or error_obj.get('title') or str(error_obj)
                         message.error_message = error_msg
         
         return message
