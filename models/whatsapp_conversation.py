@@ -31,7 +31,8 @@ class WhatsAppConversation(models.Model):
                                         store=True)
     
     unread_count = fields.Integer(string='Unread Messages',
-                                   compute='_compute_unread_count')
+                                   compute='_compute_unread_count',
+                                   store=True)
     
     display_name = fields.Char(string='Display Name', 
                                 compute='_compute_display_name')
@@ -82,6 +83,7 @@ class WhatsAppConversation(models.Model):
                 record.last_message_date = False
                 record.last_message_preview = ''
 
+    @api.depends('message_ids.status', 'message_ids.direction')
     def _compute_unread_count(self):
         for record in self:
             record.unread_count = self.env['whatsapp.message'].search_count([
