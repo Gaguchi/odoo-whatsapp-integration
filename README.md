@@ -4,6 +4,8 @@ A custom module that integrates WhatsApp Business API with Odoo Community Editio
 
 ## Features
 
+- ✅ **NEW!** Chat Interface (WhatsApp-style UI)
+- ✅ **NEW!** Conversation & Thread Management
 - ✅ Send text messages via WhatsApp Business API
 - ✅ Send template messages
 - ✅ Receive incoming messages via webhooks
@@ -72,16 +74,21 @@ Click "Test Connection" on your WhatsApp account to verify API connectivity.
 
 ## Usage
 
-### Sending Messages
+### Chat Interface (New!)
+1. Go to **WhatsApp → Chat**
+2. Click **New Chat** to start a conversation
+3. Select a contact or enter a phone number
+4. Chat in real-time!
 
-1. Go to **WhatsApp → Messages**
+### Sending Messages (Legacy Wizard)
+1. Go to **WhatsApp → All Messages**
 2. Click action to open Send Message wizard
 3. Enter phone number and message
 4. Click Send
 
 ### Viewing Messages
-
-All incoming and outgoing messages appear in **WhatsApp → Messages** with:
+All messages are now grouped by Conversation in the **Chat** menu.
+You can still view a flat list in **WhatsApp → All Messages**.
 - Direction indicator
 - Status tracking
 - Partner auto-linking
