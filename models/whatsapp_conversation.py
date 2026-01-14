@@ -106,7 +106,7 @@ class WhatsAppConversation(models.Model):
                 'phone_number': phone_number,
             })
         
-        return conversation
+        return conversation.id
 
     def action_open_chat(self):
         """Open the chat interface for this conversation."""

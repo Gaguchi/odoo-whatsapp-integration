@@ -172,14 +172,12 @@ export class WhatsAppChat extends Component {
             }
 
             // Create or get conversation (returns ID or record)
-            const result = await this.orm.call(
+            // Create or get conversation (returns ID)
+            const conversationId = await this.orm.call(
                 "whatsapp.conversation",
                 "get_or_create",
                 [account.id, this.state.newChatPhone.trim()]
             );
-
-            // Handle if result is an array (recordset) or id
-            const conversationId = Array.isArray(result) ? result[0] : (typeof result === 'object' ? result.id : result);
 
             // Reload conversations and select the new one
             await this.loadConversations();
