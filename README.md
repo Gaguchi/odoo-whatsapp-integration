@@ -115,3 +115,7 @@ This is a community module. For issues, check the Odoo logs or the Meta Develope
 ## License
 
 LGPL-3
+
+update command: 
+
+cd /mnt/extra-addons && rm -rf whatsapp_integration && curl -H 'Cache-Control: no-cache' -L https://github.com/Gaguchi/odoo-whatsapp-integration/archive/refs/heads/main.zip -o repo.zip && python3 -c "import zipfile; zipfile.ZipFile('repo.zip').extractall()" && mv odoo-whatsapp-integration-main whatsapp_integration && rm repo.zip

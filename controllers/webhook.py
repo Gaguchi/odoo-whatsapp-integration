@@ -58,7 +58,7 @@ class WhatsAppWebhook(http.Controller):
         """
         try:
             data = request.get_json_data()
-            _logger.debug(f"WhatsApp webhook received: {json.dumps(data, indent=2)}")
+            _logger.info(f"WhatsApp webhook received: {json.dumps(data, indent=2)}")
             
             # Normalize data structure to handle both standard and flattened payloads
             entries = data.get('entry', [])
