@@ -6,9 +6,23 @@
               web_icon="whatsapp_integration,static/description/icon.png"
               sequence="50"/>
 
-    <!-- Messages Submenu -->
+    <!-- Chat (Primary) -->
+    <menuitem id="whatsapp_menu_chat"
+              name="Chat"
+              parent="whatsapp_menu_root"
+              action="whatsapp_chat_action"
+              sequence="1"/>
+
+    <!-- Conversations List -->
+    <menuitem id="whatsapp_menu_conversations"
+              name="Conversations"
+              parent="whatsapp_menu_root"
+              action="whatsapp_conversation_action"
+              sequence="5"/>
+
+    <!-- Messages (All Messages List) -->
     <menuitem id="whatsapp_menu_messages"
-              name="Messages"
+              name="All Messages"
               parent="whatsapp_menu_root"
               action="whatsapp_message_action"
               sequence="10"/>

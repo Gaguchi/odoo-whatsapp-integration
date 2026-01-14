@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="whatsapp_integration.WhatsAppChat">
+        <div class="whatsapp-chat-container d-flex h-100">
+            <!-- Left Sidebar: Conversation List -->
+            <div class="whatsapp-sidebar border-end">
+                <div class="sidebar-header p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-whatsapp text-success me-2"/>Chats
+                    </h5>
+                    <button class="btn btn-sm btn-success" t-on-click="toggleNewChatDialog">
+                        <i class="fa fa-plus"/>
+                    </button>
+                </div>
+                
+                <!-- New Chat Dialog -->
+                <div t-if="state.showNewChatDialog" class="p-3 border-bottom bg-light">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Enter phone number..."
+                               t-att-value="state.newChatPhone"
+                               t-on-input="onNewChatPhoneInput"
+                               t-on-keypress="(ev) => ev.key === 'Enter' &amp;&amp; this.startNewChat()"/>
+                        <button class="btn btn-success" t-on-click="startNewChat">
+                            <i class="fa fa-arrow-right"/>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Conversation List -->
+                <div class="conversation-list overflow-auto">
+                    <t t-if="state.loading">
+                        <div class="text-center p-4">
+                            <i class="fa fa-spinner fa-spin fa-2x"/>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <t t-if="state.conversations.length === 0">
+                            <div class="text-center text-muted p-4">
+                                <i class="fa fa-comments fa-3x mb-3 d-block"/>
+                                <p>No conversations yet</p>
+                                <button class="btn btn-success btn-sm" t-on-click="toggleNewChatDialog">
+                                    Start a new chat
+                                </button>
+                            </div>
+                        </t>
+                        <t t-foreach="state.conversations" t-as="conv" t-key="conv.id">
+                            <div t-attf-class="conversation-item p-3 border-bottom cursor-pointer {{ state.activeConversation?.id === conv.id ? 'active bg-light' : '' }}"
+                                 t-on-click="() => this.selectConversation(conv.id)">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3">
+                                        <i class="fa fa-user"/>
+                                    </div>
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <div class="d-flex justify-content-between">
+                                            <strong class="text-truncate" t-esc="conv.display_name"/>
+                                            <small class="text-muted" t-esc="formatTime(conv.last_message_date)"/>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small class="text-muted text-truncate" t-esc="conv.last_message_preview || 'No messages'"/>
+                                            <span t-if="conv.unread_count > 0" class="badge bg-success rounded-pill" t-esc="conv.unread_count"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </t>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Chat Thread -->
+            <div class="whatsapp-chat-panel flex-grow-1 d-flex flex-column">
+                <t t-if="state.activeConversation">
+                    <!-- Chat Header -->
+                    <div class="chat-header p-3 border-bottom d-flex align-items-center">
+                        <div class="avatar-circle me-3">
+                            <i class="fa fa-user"/>
+                        </div>
+                        <div>
+                            <strong t-esc="state.activeConversation.display_name"/>
+                            <br/>
+                            <small class="text-muted" t-esc="state.activeConversation.phone_number"/>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages Area -->
+                    <div class="messages-container flex-grow-1 overflow-auto p-3">
+                        <t t-foreach="state.messages" t-as="msg" t-key="msg.id">
+                            <div t-attf-class="message-bubble mb-2 {{ msg.direction === 'outgoing' ? 'outgoing' : 'incoming' }}">
+                                <div class="bubble-content">
+                                    <t t-if="msg.message_type === 'image'">
+                                        <i class="fa fa-image me-1"/>
+                                    </t>
+                                    <t t-if="msg.message_type === 'document'">
+                                        <i class="fa fa-file me-1"/>
+                                    </t>
+                                    <t t-if="msg.message_type === 'audio'">
+                                        <i class="fa fa-microphone me-1"/>
+                                    </t>
+                                    <t t-if="msg.message_type === 'video'">
+                                        <i class="fa fa-video-camera me-1"/>
+                                    </t>
+                                    <span t-esc="msg.content"/>
+                                </div>
+                                <div class="bubble-meta">
+                                    <small class="text-muted" t-esc="formatTime(msg.timestamp)"/>
+                                    <t t-if="msg.direction === 'outgoing'">
+                                        <i t-attf-class="fa {{ getStatusIcon(msg.status) }} ms-1"/>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+                        <div t-ref="messagesEnd"/>
+                    </div>
+                    
+                    <!-- Message Composer -->
+                    <div class="message-composer p-3 border-top">
+                        <div class="input-group">
+                            <textarea class="form-control" 
+                                      rows="1" 
+                                      placeholder="Type a message..."
+                                      t-att-value="state.newMessage"
+                                      t-on-input="onMessageInput"
+                                      t-on-keypress="onKeyPress"
+                                      t-att-disabled="state.sendingMessage"/>
+                            <button class="btn btn-success" 
+                                    t-on-click="sendMessage"
+                                    t-att-disabled="state.sendingMessage || !state.newMessage.trim()">
+                                <t t-if="state.sendingMessage">
+                                    <i class="fa fa-spinner fa-spin"/>
+                                </t>
+                                <t t-else="">
+                                    <i class="fa fa-paper-plane"/>
+                                </t>
+                            </button>
+                        </div>
+                    </div>
+                </t>
+                <t t-else="">
+                    <!-- No conversation selected -->
+                    <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+                        <i class="fa fa-whatsapp fa-5x mb-4 text-success"/>
+                        <h4>WhatsApp for Odoo</h4>
+                        <p>Select a conversation or start a new chat</p>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

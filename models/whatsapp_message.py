@@ -13,6 +13,9 @@ class WhatsAppMessage(models.Model):
     account_id = fields.Many2one('whatsapp.account', string='WhatsApp Account',
                                   required=True, ondelete='cascade')
     
+    conversation_id = fields.Many2one('whatsapp.conversation', string='Conversation',
+                                       ondelete='cascade', index=True)
+    
     direction = fields.Selection([
         ('incoming', 'Incoming'),
         ('outgoing', 'Outgoing'),
@@ -148,8 +151,14 @@ class WhatsAppMessage(models.Model):
         
         phone = contact_data.get('wa_id', message_data.get('from', ''))
         
+        # Get or create conversation for this phone number
+        conversation = self.env['whatsapp.conversation'].get_or_create(
+            account.id, phone
+        )
+        
         return self.create({
             'account_id': account.id,
+            'conversation_id': conversation.id,
             'direction': 'incoming',
             'phone_number': phone,
             'message_type': message_type,
