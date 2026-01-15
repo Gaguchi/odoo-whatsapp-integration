@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-WHATSAPP_API_URL = "https://graph.facebook.com/v18.0"
+WHATSAPP_API_URL = "https://graph.facebook.com/v22.0"
 
 
 class WhatsAppAccount(models.Model):

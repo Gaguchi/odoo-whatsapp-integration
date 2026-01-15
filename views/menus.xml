@@ -13,6 +13,13 @@
               action="whatsapp_chat_action"
               sequence="1"/>
 
+    <!-- Send Message Wizard -->
+    <menuitem id="whatsapp_menu_send_message"
+              name="Send Message"
+              parent="whatsapp_menu_root"
+              action="whatsapp_message_send_wizard_action"
+              sequence="2"/>
+
     <!-- Conversations List -->
     <menuitem id="whatsapp_menu_conversations"
               name="Conversations"

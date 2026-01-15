@@ -17,6 +17,8 @@ export class WhatsAppChat extends Component {
         this.messagesEndRef = useRef("messagesEnd");
 
         this.state = useState({
+            accounts: [],
+            selectedAccountId: null,
             conversations: [],
             activeConversation: null,
             messages: [],
@@ -28,6 +30,7 @@ export class WhatsAppChat extends Component {
         });
 
         onWillStart(async () => {
+            await this.loadAccounts();
             await this.loadConversations();
             // Check if we should open a specific conversation
             const activeId = this.props.action?.context?.active_conversation_id;
@@ -41,12 +44,42 @@ export class WhatsAppChat extends Component {
         });
     }
 
+    async loadAccounts() {
+        try {
+            const accounts = await this.orm.searchRead(
+                "whatsapp.account",
+                [["active", "=", true]],
+                ["id", "name", "state"],
+                { order: "name asc" }
+            );
+            this.state.accounts = accounts;
+            // Auto-select first account if none selected
+            if (accounts.length > 0 && !this.state.selectedAccountId) {
+                this.state.selectedAccountId = accounts[0].id;
+            }
+        } catch (error) {
+            this.notification.add(_t("Failed to load accounts"), { type: "danger" });
+            console.error(error);
+        }
+    }
+
+    async onAccountChange(ev) {
+        const accountId = parseInt(ev.target.value, 10);
+        this.state.selectedAccountId = accountId;
+        this.state.activeConversation = null;
+        this.state.messages = [];
+        await this.loadConversations();
+    }
+
     async loadConversations() {
         this.state.loading = true;
         try {
+            const domain = this.state.selectedAccountId
+                ? [["account_id", "=", this.state.selectedAccountId]]
+                : [];
             const conversations = await this.orm.searchRead(
                 "whatsapp.conversation",
-                [],
+                domain,
                 ["id", "display_name", "phone_number", "last_message_date", "last_message_preview", "unread_count"],
                 { order: "last_message_date desc" }
             );
@@ -157,26 +190,17 @@ export class WhatsAppChat extends Component {
     async startNewChat() {
         if (!this.state.newChatPhone.trim()) return;
 
+        if (!this.state.selectedAccountId) {
+            this.notification.add(_t("Please select a WhatsApp account first"), { type: "warning" });
+            return;
+        }
+
         try {
-            // Get the default account
-            const [account] = await this.orm.searchRead(
-                "whatsapp.account",
-                [],
-                ["id"],
-                { limit: 1 }
-            );
-
-            if (!account) {
-                this.notification.add(_t("No WhatsApp account configured"), { type: "warning" });
-                return;
-            }
-
-            // Create or get conversation (returns ID or record)
-            // Create or get conversation (returns ID)
+            // Create or get conversation using the selected account
             const conversationId = await this.orm.call(
                 "whatsapp.conversation",
                 "get_or_create",
-                [account.id, this.state.newChatPhone.trim()]
+                [this.state.selectedAccountId, this.state.newChatPhone.trim()]
             );
 
             // Reload conversations and select the new one
