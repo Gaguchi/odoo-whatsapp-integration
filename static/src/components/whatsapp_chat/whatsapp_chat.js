@@ -84,8 +84,10 @@ export class WhatsAppChat extends Component {
                     // Check if message already exists (avoid duplicates)
                     const exists = this.state.messages.some(m => m.id === message.id);
                     if (!exists) {
-                        this.state.messages.push(message);
+                        // Replace array to ensure OWL reactivity triggers
+                        this.state.messages = [...this.state.messages, message];
                         setTimeout(() => this.scrollToBottom(), 100);
+                        console.log("Message added to chat:", message);
                     }
                 }
             }
