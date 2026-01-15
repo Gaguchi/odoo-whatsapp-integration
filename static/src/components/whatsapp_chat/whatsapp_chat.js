@@ -43,14 +43,14 @@ export class WhatsAppChat extends Component {
 
         onMounted(() => {
             this.scrollToBottom();
-            // Subscribe to bus for real-time updates
+            // Subscribe to bus for real-time updates (bonus, may not work in all setups)
             this.subscribeToChannels();
-            // Start fallback polling (silent, no loading state)
-            this.startFallbackPolling();
+            // Start polling for real-time updates
+            this.startPolling();
         });
 
         onWillUnmount(() => {
-            this.stopFallbackPolling();
+            this.stopPolling();
         });
     }
 
@@ -137,17 +137,51 @@ export class WhatsAppChat extends Component {
         }
     }
 
-    startFallbackPolling() {
-        // Silent polling - just a fallback, no loading spinner
-        this.pollInterval = setInterval(async () => {
+    startPolling() {
+        // Poll for new messages every 3 seconds when a conversation is active
+        this.messagesPollInterval = setInterval(async () => {
+            if (this.state.activeConversation && !this.state.sendingMessage) {
+                await this.refreshMessages();
+            }
+        }, 3000);
+
+        // Poll for conversation list updates every 5 seconds (silent, no loading)
+        this.conversationsPollInterval = setInterval(async () => {
             await this.loadConversations(false);
-        }, 30000); // Every 30 seconds
+        }, 5000);
     }
 
-    stopFallbackPolling() {
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-            this.pollInterval = null;
+    stopPolling() {
+        if (this.messagesPollInterval) {
+            clearInterval(this.messagesPollInterval);
+            this.messagesPollInterval = null;
+        }
+        if (this.conversationsPollInterval) {
+            clearInterval(this.conversationsPollInterval);
+            this.conversationsPollInterval = null;
+        }
+    }
+
+    async refreshMessages() {
+        if (!this.state.activeConversation) return;
+
+        try {
+            const messages = await this.orm.call(
+                "whatsapp.conversation",
+                "get_messages",
+                [this.state.activeConversation.id]
+            );
+
+            // Only update if there are new messages (compare length and last message id)
+            const currentLastId = this.state.messages.length > 0 ? this.state.messages[this.state.messages.length - 1].id : null;
+            const newLastId = messages.length > 0 ? messages[messages.length - 1].id : null;
+
+            if (messages.length !== this.state.messages.length || currentLastId !== newLastId) {
+                this.state.messages = messages;
+                setTimeout(() => this.scrollToBottom(), 100);
+            }
+        } catch (error) {
+            console.error("Failed to refresh messages:", error);
         }
     }
 
