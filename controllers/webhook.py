@@ -97,16 +97,22 @@ class WhatsAppWebhook(http.Controller):
                     
                     for message in messages:
                         contact = next((c for c in contacts if c.get('wa_id') == message.get('from')), {})
-                        request.env['whatsapp.message'].sudo().process_webhook_message(
+                        msg_record = request.env['whatsapp.message'].sudo().process_webhook_message(
                             account, message, contact
                         )
+                        # Send bus notification for new message
+                        if msg_record:
+                            self._notify_new_message(account.id, msg_record)
                     
                     # Process status updates
                     statuses = value.get('statuses', [])
                     for status in statuses:
-                        request.env['whatsapp.message'].sudo().process_status_update(
+                        msg_record = request.env['whatsapp.message'].sudo().process_status_update(
                             account, status
                         )
+                        # Send bus notification for status update
+                        if msg_record:
+                            self._notify_status_update(account.id, msg_record)
             
             return 'OK'
             
@@ -132,3 +138,42 @@ class WhatsAppWebhook(http.Controller):
             }
         except Exception as e:
             return {'status': 'error', 'message': str(e)}
+
+    def _notify_new_message(self, account_id, message):
+        """Send bus notification for new incoming message."""
+        try:
+            channel = f'whatsapp_channel_{account_id}'
+            notification = {
+                'type': 'new_message',
+                'account_id': account_id,
+                'conversation_id': message.conversation_id.id if message.conversation_id else None,
+                'message': {
+                    'id': message.id,
+                    'direction': message.direction,
+                    'content': message.content,
+                    'message_type': message.message_type,
+                    'timestamp': message.timestamp.isoformat() if message.timestamp else None,
+                    'status': message.status,
+                    'phone_number': message.phone_number,
+                }
+            }
+            request.env['bus.bus'].sudo()._sendone(channel, 'whatsapp.message', notification)
+            _logger.info(f"Bus notification sent for new message on channel: {channel}")
+        except Exception as e:
+            _logger.error(f"Failed to send bus notification: {e}")
+
+    def _notify_status_update(self, account_id, message):
+        """Send bus notification for message status update."""
+        try:
+            channel = f'whatsapp_channel_{account_id}'
+            notification = {
+                'type': 'status_update',
+                'account_id': account_id,
+                'message_id': message.id,
+                'whatsapp_message_id': message.whatsapp_message_id,
+                'status': message.status,
+                'error_message': message.error_message,
+            }
+            request.env['bus.bus'].sudo()._sendone(channel, 'whatsapp.status', notification)
+        except Exception as e:
+            _logger.error(f"Failed to send status bus notification: {e}")

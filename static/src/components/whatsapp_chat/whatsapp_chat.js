@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState, onWillStart, onMounted, useRef } from "@odoo/owl";
+import { Component, useState, onWillStart, onMounted, onWillUnmount, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
@@ -14,7 +14,9 @@ export class WhatsAppChat extends Component {
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
+        this.busService = useService("bus_service");
         this.messagesEndRef = useRef("messagesEnd");
+        this.pollInterval = null;
 
         this.state = useState({
             accounts: [],
@@ -41,7 +43,89 @@ export class WhatsAppChat extends Component {
 
         onMounted(() => {
             this.scrollToBottom();
+            // Subscribe to bus for real-time updates
+            this.subscribeToChannels();
+            // Start fallback polling (less frequent since we have bus)
+            this.startFallbackPolling();
         });
+
+        onWillUnmount(() => {
+            this.stopFallbackPolling();
+        });
+    }
+
+    subscribeToChannels() {
+        // Subscribe to all account channels for this user
+        for (const account of this.state.accounts) {
+            const channel = `whatsapp_channel_${account.id}`;
+            this.busService.subscribe(channel, (payload) => {
+                this.onBusNotification(payload);
+            });
+        }
+    }
+
+    onBusNotification(payload) {
+        console.log("WhatsApp bus notification:", payload);
+
+        if (payload.type === 'new_message') {
+            // Handle new incoming message
+            const accountId = payload.account_id;
+            const conversationId = payload.conversation_id;
+            const message = payload.message;
+
+            // If it's for the currently selected account, update UI
+            if (accountId === this.state.selectedAccountId) {
+                // Refresh conversation list to show new message preview
+                this.loadConversations();
+
+                // If this message is for the active conversation, add it
+                if (this.state.activeConversation &&
+                    this.state.activeConversation.id === conversationId) {
+                    // Check if message already exists (avoid duplicates)
+                    const exists = this.state.messages.some(m => m.id === message.id);
+                    if (!exists) {
+                        this.state.messages.push(message);
+                        setTimeout(() => this.scrollToBottom(), 100);
+                    }
+                }
+            }
+
+            // Show notification for new message
+            this.notification.add(
+                _t("New message from ") + message.phone_number,
+                { type: "info", sticky: false }
+            );
+        } else if (payload.type === 'status_update') {
+            // Handle status update for existing message
+            const messageId = payload.message_id;
+            const newStatus = payload.status;
+
+            // Update message status in current list
+            const msg = this.state.messages.find(m => m.id === messageId);
+            if (msg) {
+                msg.status = newStatus;
+                if (payload.error_message) {
+                    msg.error_message = payload.error_message;
+                }
+            }
+        }
+    }
+
+    startFallbackPolling() {
+        // Reduced frequency since we have real-time bus updates
+        // This is just a fallback in case bus misses something
+        this.pollInterval = setInterval(async () => {
+            if (!this.state.loading) {
+                await this.loadConversations();
+            }
+        }, 30000); // Every 30 seconds
+    }
+
+    stopFallbackPolling() {
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
     }
 
     async loadAccounts() {
