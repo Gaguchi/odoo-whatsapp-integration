@@ -95,18 +95,28 @@ class WhatsAppConversation(models.Model):
     @api.model
     def get_or_create(self, account_id, phone_number):
         """Get existing conversation or create a new one."""
+        # Normalize phone number (remove +, spaces, dashes)
+        normalized_phone = self._normalize_phone(phone_number)
+        
         conversation = self.search([
             ('account_id', '=', account_id),
-            ('phone_number', '=', phone_number),
+            ('phone_number', '=', normalized_phone),
         ], limit=1)
         
         if not conversation:
             conversation = self.create({
                 'account_id': account_id,
-                'phone_number': phone_number,
+                'phone_number': normalized_phone,
             })
         
         return conversation.id
+
+    @api.model
+    def _normalize_phone(self, phone):
+        """Normalize phone number by removing +, spaces, dashes."""
+        if not phone:
+            return phone
+        return phone.replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
 
     def action_open_chat(self):
         """Open the chat interface for this conversation."""
@@ -126,6 +136,9 @@ class WhatsAppConversation(models.Model):
             ('conversation_id', '=', self.id)
         ], order='timestamp asc', limit=limit, offset=offset)
         
+        # Mark incoming messages as read when viewing
+        self.mark_as_read()
+        
         return [{
             'id': msg.id,
             'direction': msg.direction,
@@ -135,6 +148,18 @@ class WhatsAppConversation(models.Model):
             'status': msg.status,
             'media_url': msg.media_url,
         } for msg in messages]
+
+    def mark_as_read(self):
+        """Mark all incoming messages in this conversation as read."""
+        self.ensure_one()
+        unread_messages = self.env['whatsapp.message'].search([
+            ('conversation_id', '=', self.id),
+            ('direction', '=', 'incoming'),
+            ('status', '!=', 'read'),
+        ])
+        if unread_messages:
+            unread_messages.write({'status': 'read'})
+        return len(unread_messages)
 
     def send_message(self, content, message_type='text'):
         """Send a message in this conversation."""

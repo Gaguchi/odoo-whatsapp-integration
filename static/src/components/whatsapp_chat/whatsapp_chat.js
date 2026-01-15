@@ -25,7 +25,7 @@ export class WhatsAppChat extends Component {
             activeConversation: null,
             messages: [],
             newMessage: "",
-            loading: false,
+            loading: true, // Only true on initial load
             sendingMessage: false,
             showNewChatDialog: false,
             newChatPhone: "",
@@ -33,7 +33,7 @@ export class WhatsAppChat extends Component {
 
         onWillStart(async () => {
             await this.loadAccounts();
-            await this.loadConversations();
+            await this.loadConversations(true); // Show loading on initial
             // Check if we should open a specific conversation
             const activeId = this.props.action?.context?.active_conversation_id;
             if (activeId) {
@@ -45,7 +45,7 @@ export class WhatsAppChat extends Component {
             this.scrollToBottom();
             // Subscribe to bus for real-time updates
             this.subscribeToChannels();
-            // Start fallback polling (less frequent since we have bus)
+            // Start fallback polling (silent, no loading state)
             this.startFallbackPolling();
         });
 
@@ -68,58 +68,79 @@ export class WhatsAppChat extends Component {
         console.log("WhatsApp bus notification:", payload);
 
         if (payload.type === 'new_message') {
-            // Handle new incoming message
             const accountId = payload.account_id;
             const conversationId = payload.conversation_id;
             const message = payload.message;
 
             // If it's for the currently selected account, update UI
             if (accountId === this.state.selectedAccountId) {
-                // Refresh conversation list to show new message preview
-                this.loadConversations();
+                // Silently refresh conversation list (no loading spinner)
+                this.loadConversations(false);
 
-                // If this message is for the active conversation, add it
+                // If this message is for the active conversation, add it directly
                 if (this.state.activeConversation &&
                     this.state.activeConversation.id === conversationId) {
                     // Check if message already exists (avoid duplicates)
                     const exists = this.state.messages.some(m => m.id === message.id);
                     if (!exists) {
-                        // Replace array to ensure OWL reactivity triggers
+                        // Replace array to trigger OWL reactivity
                         this.state.messages = [...this.state.messages, message];
                         setTimeout(() => this.scrollToBottom(), 100);
                         console.log("Message added to chat:", message);
+
+                        // Mark as read since chat is open (silent call)
+                        this.markConversationAsRead();
                     }
+                } else {
+                    // Message for a different conversation - show notification
+                    this.notification.add(
+                        _t("New message from ") + message.phone_number,
+                        { type: "info", sticky: false }
+                    );
                 }
             }
-
-            // Show notification for new message
-            this.notification.add(
-                _t("New message from ") + message.phone_number,
-                { type: "info", sticky: false }
-            );
         } else if (payload.type === 'status_update') {
             // Handle status update for existing message
             const messageId = payload.message_id;
             const newStatus = payload.status;
 
-            // Update message status in current list
-            const msg = this.state.messages.find(m => m.id === messageId);
-            if (msg) {
-                msg.status = newStatus;
-                if (payload.error_message) {
-                    msg.error_message = payload.error_message;
-                }
+            // Find and update the message in current list
+            const msgIndex = this.state.messages.findIndex(m => m.id === messageId);
+            if (msgIndex !== -1) {
+                // Create new array to trigger reactivity
+                const updatedMessages = [...this.state.messages];
+                updatedMessages[msgIndex] = {
+                    ...updatedMessages[msgIndex],
+                    status: newStatus,
+                    error_message: payload.error_message || updatedMessages[msgIndex].error_message,
+                };
+                this.state.messages = updatedMessages;
             }
         }
     }
 
-    startFallbackPolling() {
-        // Reduced frequency since we have real-time bus updates
-        // This is just a fallback in case bus misses something
-        this.pollInterval = setInterval(async () => {
-            if (!this.state.loading) {
-                await this.loadConversations();
+    async markConversationAsRead() {
+        if (!this.state.activeConversation) return;
+        try {
+            await this.orm.call(
+                "whatsapp.conversation",
+                "mark_as_read",
+                [this.state.activeConversation.id]
+            );
+            // Update unread count in conversation list
+            const conv = this.state.conversations.find(c => c.id === this.state.activeConversation.id);
+            if (conv) {
+                conv.unread_count = 0;
             }
+        } catch (error) {
+            console.error("Failed to mark as read:", error);
+        }
+    }
+
+    startFallbackPolling() {
+        // Silent polling - just a fallback, no loading spinner
+        this.pollInterval = setInterval(async () => {
+            await this.loadConversations(false);
         }, 30000); // Every 30 seconds
     }
 
@@ -154,11 +175,13 @@ export class WhatsAppChat extends Component {
         this.state.selectedAccountId = accountId;
         this.state.activeConversation = null;
         this.state.messages = [];
-        await this.loadConversations();
+        await this.loadConversations(true); // Show loading when switching accounts
     }
 
-    async loadConversations() {
-        this.state.loading = true;
+    async loadConversations(showLoading = false) {
+        if (showLoading) {
+            this.state.loading = true;
+        }
         try {
             const domain = this.state.selectedAccountId
                 ? [["account_id", "=", this.state.selectedAccountId]]
@@ -171,10 +194,14 @@ export class WhatsAppChat extends Component {
             );
             this.state.conversations = conversations;
         } catch (error) {
-            this.notification.add(_t("Failed to load conversations"), { type: "danger" });
+            if (showLoading) {
+                this.notification.add(_t("Failed to load conversations"), { type: "danger" });
+            }
             console.error(error);
         }
-        this.state.loading = false;
+        if (showLoading) {
+            this.state.loading = false;
+        }
     }
 
     async selectConversation(conversationId) {
@@ -195,6 +222,11 @@ export class WhatsAppChat extends Component {
 
         if (this.state.activeConversation) {
             await this.loadMessages();
+            // Update unread count to 0 in the list (messages were marked as read by loadMessages)
+            const convInList = this.state.conversations.find(c => c.id === this.state.activeConversation.id);
+            if (convInList) {
+                convInList.unread_count = 0;
+            }
         }
     }
 
@@ -244,12 +276,12 @@ export class WhatsAppChat extends Component {
                 [this.state.activeConversation.id, this.state.newMessage]
             );
 
-            // Add message to list
-            this.state.messages.push(result);
+            // Add message to list (replace array for reactivity)
+            this.state.messages = [...this.state.messages, result];
             this.state.newMessage = "";
 
-            // Update conversation preview
-            await this.loadConversations();
+            // Silently update conversation preview
+            await this.loadConversations(false);
 
             // Scroll to bottom
             setTimeout(() => this.scrollToBottom(), 100);
@@ -290,7 +322,7 @@ export class WhatsAppChat extends Component {
             );
 
             // Reload conversations and select the new one
-            await this.loadConversations();
+            await this.loadConversations(false);
             await this.selectConversation(conversationId);
 
             this.state.showNewChatDialog = false;
