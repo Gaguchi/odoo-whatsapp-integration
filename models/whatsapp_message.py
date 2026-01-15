@@ -151,14 +151,14 @@ class WhatsAppMessage(models.Model):
         
         phone = contact_data.get('wa_id', message_data.get('from', ''))
         
-        # Get or create conversation for this phone number
-        conversation = self.env['whatsapp.conversation'].get_or_create(
+        # Get or create conversation for this phone number (returns ID)
+        conversation_id = self.env['whatsapp.conversation'].get_or_create(
             account.id, phone
         )
         
         return self.create({
             'account_id': account.id,
-            'conversation_id': conversation.id,
+            'conversation_id': conversation_id,
             'direction': 'incoming',
             'phone_number': phone,
             'message_type': message_type,
